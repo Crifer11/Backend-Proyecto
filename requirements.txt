@@ -8,8 +8,8 @@ numpy
 opencv-python-headless
 pillow
 face-recognition
-dlib-bin
-torch
+
 pytesseract
 twilio
+
 
