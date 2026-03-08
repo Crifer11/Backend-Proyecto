@@ -11,6 +11,4 @@ pillow
 torch
 pytesseract
 twilio
-
-
-
+python-multipart
