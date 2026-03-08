@@ -7,10 +7,11 @@ weasyprint
 numpy
 opencv-python-headless
 pillow
-face_recognition
+face-recognition==1.3.0
 torch
 pytesseract
 twilio
 python-multipart
+
 
 
