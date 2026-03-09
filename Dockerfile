@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
 
 # Instalar dlib-bin PRIMERO para que face-recognition no intente compilar dlib
 RUN pip install --no-cache-dir dlib-bin
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
 # Instalar el resto ignorando dlib ya que está instalado
