@@ -12,3 +12,4 @@ face-recognition==1.3.0
 pytesseract
 twilio
 python-multipart
+ultralytics
