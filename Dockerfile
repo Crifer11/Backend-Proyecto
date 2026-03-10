@@ -1,8 +1,12 @@
+Copy
+
 FROM python:3.10-slim
 
 RUN apt-get update && apt-get install -y \
     cmake \
     g++ \
+    libgl1 \
+    libglib2.0-0 \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libpangocairo-1.0-0 \
@@ -16,10 +20,8 @@ RUN apt-get update && apt-get install -y \
 
 # Instalar dlib-bin PRIMERO para que face-recognition no intente compilar dlib
 RUN pip install --no-cache-dir dlib-bin
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
 
 COPY requirements.txt .
-# Instalar el resto ignorando dlib ya que está instalado
 RUN pip install --no-cache-dir -r requirements.txt --no-deps face-recognition==1.3.0 \
     && pip install --no-cache-dir -r requirements.txt
 
