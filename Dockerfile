@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     shared-mime-info \
     fonts-liberation \
+    tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 # Instalar dlib-bin PRIMERO para que face-recognition no intente compilar dlib
