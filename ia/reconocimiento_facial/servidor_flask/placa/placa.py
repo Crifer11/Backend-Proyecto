@@ -1,6 +1,6 @@
 # placas.py - deteccion y OCR de placas EN MEMORIA
 import cv2
-from ultralytics import YOLO
+import torch
 import pytesseract
 import numpy as np
 import os
@@ -11,7 +11,12 @@ import os
 BASE_DIR = os.path.dirname(__file__)
 MODEL_FILE = os.path.join(BASE_DIR, "best.pt")
 print("Cargando modelo YOLOv5 de placas...")
-modelo = YOLO(MODEL_FILE)
+modelo = torch.hub.load(
+    "ultralytics/yolov5",
+    "custom",
+    path=MODEL_FILE,
+    force_reload=False
+)
 modelo.conf = 0.4
 print("Modelo de placas cargado correctamente")
 
@@ -46,7 +51,7 @@ def reconocer_placa(imagen_bgr):
     if imagen_bgr is None:
         return ""
 
-    resultados = modelo.predict(imagen_bgr, verbose=False)
+    resultados = modelo(imagen_bgr)
 
     if not resultados or len(resultados[0].boxes) == 0:
         return ""
