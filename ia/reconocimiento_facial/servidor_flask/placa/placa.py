@@ -46,7 +46,7 @@ def reconocer_placa(imagen_bgr):
     if imagen_bgr is None:
         return ""
 
-    resultados = modelo(imagen_bgr)
+    resultados = modelo.predict(imagen_bgr, verbose=False)
 
     if not resultados or len(resultados[0].boxes) == 0:
         return ""
