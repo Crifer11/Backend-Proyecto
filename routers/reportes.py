@@ -7,7 +7,7 @@ from datetime import datetime
 import os
 from io import BytesIO
 from pathlib import Path
-
+ 
 router = APIRouter()
 
 @router.get("/reportes")
