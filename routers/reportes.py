@@ -398,7 +398,8 @@ def descargar_pdf(id_reporte: str = Query(...)):
         template = Template(html_template)
         
         # Obtener ruta absoluta del logo
-        logo_path = Path(os.path.join("static", "logo.png")).resolve().as_uri()
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        logo_path = os.path.join(BASE_DIR, "static", "logo.png")
         
         # Convertir rutas relativas a absolutas para WeasyPrint
         if datos["foto_rostro"]:
