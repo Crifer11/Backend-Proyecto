@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import login, reportes, informacion, supervision, incidentes, administrar, token, menu
 from fastapi.staticfiles import StaticFiles
 import os
+from routers.sse import router as sse_router
+
 
 app = FastAPI(
     title="Sistema de Acceso Automatizado",
@@ -11,6 +13,7 @@ app = FastAPI(
 )
 
 # Incluir las rutas
+app.include_router(sse_router)
 app.include_router(login.router)
 app.include_router(menu.router)
 app.include_router(reportes.router)
