@@ -265,17 +265,6 @@ def descargar_pdf(id_reporte: str = Query(...)):
       font-weight: bold;
     }
 
-    /* Footer / Firma */
-    .footer {
-      margin-top: 30px;
-      padding: 20px 30px;
-      border-top: 1px solid #eee;
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #95a5a6;
-    }
-
     @media print {
       body { background: white; padding: 0; }
       .reporte-container { box-shadow: none; border: none; width: 100%; }
@@ -383,11 +372,6 @@ def descargar_pdf(id_reporte: str = Query(...)):
         </div>
       </div>
     </main>
-
-    <footer class="footer">
-      <span>SafeGate Security System &copy; 2026</span>
-      <span>Documento generado electrónicamente - ID: SG-{{ placa }}-{{ fecha }}</span>
-    </footer>
   </div>
 
 </body>
