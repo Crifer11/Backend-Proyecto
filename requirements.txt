@@ -14,3 +14,4 @@ twilio
 python-multipart
 torch==2.0.1 --index-url https://download.pytorch.org/whl/cpu
 yolov5
+huggingface_hub
