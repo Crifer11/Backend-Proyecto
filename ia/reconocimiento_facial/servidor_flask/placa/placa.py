@@ -32,48 +32,18 @@ lector = easyocr.Reader(['en'], gpu=False)
 print("EasyOCR cargado correctamente")
 
 # =========================
-# Distancia de Levenshtein
-# Cuenta cuántos caracteres son diferentes entre dos cadenas
-# =========================
-def levenshtein(s1, s2):
-    if len(s1) < len(s2):
-        return levenshtein(s2, s1)
-    if len(s2) == 0:
-        return len(s1)
-    fila_anterior = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        fila_actual = [i + 1]
-        for j, c2 in enumerate(s2):
-            inserciones   = fila_anterior[j + 1] + 1
-            eliminaciones = fila_actual[j] + 1
-            sustituciones = fila_anterior[j] + (c1 != c2)
-            fila_actual.append(min(inserciones, eliminaciones, sustituciones))
-        fila_anterior = fila_actual
-    return fila_anterior[-1]
-
-def comparar_placa(placa_detectada, placa_registrada, tolerancia=1):
-    """
-    Compara la placa detectada contra la registrada.
-    Retorna True si son iguales o si la diferencia es <= tolerancia.
-    """
-    p1 = placa_detectada.upper().replace("-", "").replace(" ", "")
-    p2 = placa_registrada.upper().replace("-", "").replace(" ", "")
-    distancia = levenshtein(p1, p2)
-    print(f"Comparando '{p1}' vs '{p2}' — distancia: {distancia}")
-    return distancia <= tolerancia
-
-# =========================
 # Preprocesamiento
 # =========================
 def preprocesar_placa(img):
     h, w = img.shape[:2]
 
     # Recortar solo la franja del texto principal
+    # Las placas mexicanas tienen logos arriba y JALISCO/MEXICO abajo
     margen_top    = int(h * 0.28)
     margen_bottom = int(h * 0.72)
     img = img[margen_top:margen_bottom, :]
 
-    # Escalar para mejor lectura
+    # Escalar para mejor lectura (mínimo 400px de ancho)
     h2, w2 = img.shape[:2]
     if w2 < 400:
         scale = 400 / w2
@@ -85,12 +55,7 @@ def preprocesar_placa(img):
 # OCR con EasyOCR
 # =========================
 def ocr_placa(img):
-    resultados = lector.readtext(
-        img,
-        detail=1,
-        paragraph=False,
-        allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    )
+    resultados = lector.readtext(img, detail=1, paragraph=False)
 
     print(f"EasyOCR resultados raw: {resultados}")
 
@@ -107,8 +72,10 @@ def ocr_placa(img):
     if not textos:
         return ""
 
-    # Quedarse con el texto más largo
+    # Quedarse con el texto más largo (generalmente la placa)
     texto_final = max(textos, key=len)
+
+    # Limpiar caracteres que no son letras ni números
     texto_final = ''.join(c for c in texto_final if c.isalnum())
 
     return texto_final
@@ -138,6 +105,7 @@ def reconocer_placa(imagen_bgr):
 
     x1, y1, x2, y2 = map(int, mejor[:4])
 
+    # Margen al recorte
     margen = 5
     h, w = imagen_bgr.shape[:2]
     x1 = max(0, x1 - margen)
