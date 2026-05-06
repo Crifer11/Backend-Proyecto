@@ -1,6 +1,6 @@
 import cv2
 import torch
-import pytesseract
+import easyocr
 import numpy as np
 from huggingface_hub import hf_hub_download
 
@@ -25,66 +25,60 @@ modelo.iou  = 0.45
 print("Modelo de placas cargado correctamente")
 
 # =========================
+# Cargar EasyOCR UNA SOLA VEZ
+# =========================
+print("Cargando EasyOCR...")
+lector = easyocr.Reader(['en'], gpu=False)
+print("EasyOCR cargado correctamente")
+
+# =========================
 # Preprocesamiento
 # =========================
 def preprocesar_placa(img):
     h, w = img.shape[:2]
 
-    # Recortar solo la franja central donde está el texto principal
-    # Las placas mexicanas tienen logos arriba y "JALISCO/MEXICO" abajo
-    # El texto principal ocupa aproximadamente el 30%-75% vertical
+    # Recortar solo la franja del texto principal
+    # Las placas mexicanas tienen logos arriba y JALISCO/MEXICO abajo
     margen_top    = int(h * 0.28)
     margen_bottom = int(h * 0.72)
     img = img[margen_top:margen_bottom, :]
 
-    # Escalar para que Tesseract trabaje mejor (mínimo 400px de ancho)
+    # Escalar para mejor lectura (mínimo 400px de ancho)
     h2, w2 = img.shape[:2]
     if w2 < 400:
         scale = 400 / w2
         img = cv2.resize(img, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
 
-    # Convertir a gris
-    gris = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-
-    # Aumentar contraste con CLAHE
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-    gris = clahe.apply(gris)
-
-    # Suavizar ruido
-    gris = cv2.GaussianBlur(gris, (3, 3), 0)
-
-    # Umbralización de Otsu — mejor que adaptive para texto de alto contraste
-    _, binaria = cv2.threshold(gris, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    # Morfología para limpiar ruido
-    kernel = np.ones((2, 2), np.uint8)
-    procesada = cv2.morphologyEx(binaria, cv2.MORPH_CLOSE, kernel)
-
-    return procesada
+    return img
 
 # =========================
-# OCR con múltiples configuraciones
+# OCR con EasyOCR
 # =========================
 def ocr_placa(img):
-    resultados = []
+    resultados = lector.readtext(img, detail=1, paragraph=False)
 
-    configs = [
-        "--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        "--psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-        "--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
-    ]
-
-    for config in configs:
-        texto = pytesseract.image_to_string(img, config=config)
-        texto = texto.strip().replace(" ", "").replace("-", "").replace("\n", "")
-        if texto:
-            resultados.append(texto)
+    print(f"EasyOCR resultados raw: {resultados}")
 
     if not resultados:
         return ""
 
-    # Devolver el resultado más largo (generalmente el más completo)
-    return max(resultados, key=len)
+    # Filtrar solo texto con confianza > 0.3
+    textos = [
+        res[1].strip().replace(" ", "").replace("-", "").upper()
+        for res in resultados
+        if res[2] > 0.3
+    ]
+
+    if not textos:
+        return ""
+
+    # Quedarse con el texto más largo (generalmente la placa)
+    texto_final = max(textos, key=len)
+
+    # Limpiar caracteres que no son letras ni números
+    texto_final = ''.join(c for c in texto_final if c.isalnum())
+
+    return texto_final
 
 # =========================
 # FUNCIÓN PRINCIPAL
@@ -107,7 +101,7 @@ def reconocer_placa(imagen_bgr):
 
     mejor = detecciones[detecciones[:, 4].argmax()]
     confianza = float(mejor[4])
-    print(f"Confianza detección: {confianza:.2f}")
+    print(f"Confianza detección YOLO: {confianza:.2f}")
 
     x1, y1, x2, y2 = map(int, mejor[:4])
 
@@ -124,8 +118,8 @@ def reconocer_placa(imagen_bgr):
     if recorte.size == 0:
         return ""
 
-    procesada = preprocesar_placa(recorte)
-    texto = ocr_placa(procesada)
+    recorte_procesado = preprocesar_placa(recorte)
+    texto = ocr_placa(recorte_procesado)
 
     print(f"Placa detectada: '{texto}'")
     return texto
