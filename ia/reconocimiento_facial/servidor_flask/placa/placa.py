@@ -3,23 +3,29 @@ import torch
 import pytesseract
 import numpy as np
 import os
+from huggingface_hub import hf_hub_download
 
 # =========================
 # Cargar modelo YOLO UNA SOLA VEZ
-# Usando el modelo keremberke/yolov5m-license-plate
-# que es el modelo base correctamente entrenado
+# Descargando desde Hugging Face directamente
 # =========================
-print("Cargando modelo YOLOv5 de placas...")
+print("Descargando modelo YOLOv5 de placas desde Hugging Face...")
+
+model_path = hf_hub_download(
+    repo_id="keremberke/yolov5m-license-plate",
+    filename="best.pt"
+)
+
+print(f"Modelo descargado en: {model_path}")
+
 modelo = torch.hub.load(
-    "keremberke/yolov5",
+    "ultralytics/yolov5",
     "custom",
-    model_name="yolov5m",
-    pretrained=True,
-    channel="license-plate",
+    path=model_path,
     force_reload=False,
     trust_repo=True
 )
-modelo.conf = 0.3  # umbral de confianza un poco más bajo para detectar más casos
+modelo.conf = 0.3
 modelo.iou  = 0.45
 print("Modelo de placas cargado correctamente")
 
@@ -27,7 +33,6 @@ print("Modelo de placas cargado correctamente")
 # Preprocesamiento
 # =========================
 def preprocesar_placa(img):
-    # Escalar la imagen para que Tesseract trabaje mejor
     alto, ancho = img.shape[:2]
     if ancho < 200:
         scale = 200 / ancho
@@ -51,8 +56,6 @@ def preprocesar_placa(img):
 # OCR
 # =========================
 def ocr_placa(img):
-    # psm 7: trata la imagen como una sola línea de texto
-    # psm 8: trata la imagen como una sola palabra (alternativa)
     config = "--psm 7 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     texto = pytesseract.image_to_string(img, config=config)
     texto = texto.strip().replace(" ", "").replace("-", "").replace("\n", "")
@@ -62,10 +65,6 @@ def ocr_placa(img):
 # FUNCIÓN PRINCIPAL
 # =========================
 def reconocer_placa(imagen_bgr):
-    """
-    imagen_bgr: numpy array en formato BGR (como lo entrega OpenCV)
-    return: texto de la placa detectada o "" si no se detectó
-    """
     if imagen_bgr is None:
         return ""
 
@@ -77,14 +76,12 @@ def reconocer_placa(imagen_bgr):
     if len(detecciones) == 0:
         return ""
 
-    # Tomar la mejor detección por confianza
     mejor = detecciones[detecciones[:, 4].argmax()]
     confianza = float(mejor[4])
     print(f"Confianza detección: {confianza:.2f}")
 
     x1, y1, x2, y2 = map(int, mejor[:4])
 
-    # Agregar un pequeño margen al recorte
     margen = 5
     h, w = imagen_bgr.shape[:2]
     x1 = max(0, x1 - margen)
