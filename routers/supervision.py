@@ -5,7 +5,7 @@ import json
 import numpy as np 
 import cv2
 from ia.reconocimiento_facial.servidor_flask.facial.facial import reconocer_rostro_desde_imagen
-from ia.reconocimiento_facial.servidor_flask.placa.placa import reconocer_placa
+from ia.reconocimiento_facial.servidor_flask.placa.placa import reconocer_placa, comparar_placa
 from routers.administrar import guardar_imagen_jpg
 from routers.twiliox import hacer_llamada
 from routers.sse import empujar_evento
@@ -74,15 +74,15 @@ async def analizar(
     print("PLACA IA:", placa_detectada)
     print("IGUALES:", placa_detectada == placa_reg)
     
-    if persona_detectada not in autorizados or placa_detectada != placa_reg:
-    
+    if persona_detectada not in autorizados or not comparar_placa(placa_detectada, placa_reg):
+        
         if persona_detectada not in autorizados and placa_detectada != placa_reg:
             resultado = "Persona no autorizada y placa incorrecta"
     
         elif persona_detectada not in autorizados:
             resultado = "Persona no autorizada"
     
-        elif placa_detectada != placa_reg:
+        elif not comparar_placa(placa_detectada, placa_reg):
             resultado = "Placa incorrecta"
             
         # --------- GENERAR REPORTE --------- 
