@@ -3,6 +3,7 @@ from database import conectar_db
 import os
 from PIL import Image
 import io
+from ia.reconocimiento_facial.servidor_flask.facial.facial import recargar_rostro
 
 router = APIRouter()
 
