@@ -150,7 +150,7 @@ def guardar_residente(
                 nombre_archivo = f"{id_residente}_perfil.jpg"
                 ruta_guardado = os.path.join(CARPETA_FOTOS, nombre_archivo)
                 guardar_imagen_jpg(foto, ruta_guardado)
-
+                recargar_rostro(ruta_guardado, id_residente)
 
             cursor.execute("""
                 UPDATE residente
@@ -173,7 +173,7 @@ def guardar_residente(
                 nombre_archivo = f"{nuevo_id}_perfil.jpg"
                 ruta_guardado = os.path.join(CARPETA_FOTOS, nombre_archivo)
                 guardar_imagen_jpg(foto, ruta_guardado)
-
+                recargar_rostro(ruta_guardado, nuevo_id)
 
                 # Actualizar el campo `foto` con el nombre del archivo
                 cursor.execute("UPDATE residente SET foto = %s WHERE id = %s", (nombre_archivo, nuevo_id))
