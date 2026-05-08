@@ -8,6 +8,7 @@ numpy==1.26.4
 opencv-python-headless
 pillow
 deepface
+tf-keras
 easyocr
 twilio
 python-multipart
