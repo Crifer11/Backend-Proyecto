@@ -12,7 +12,7 @@ carpeta_rostros = os.path.join(carpeta_base, 'static', 'perfiles')
 MODELO     = "ArcFace"       # modelo más preciso de DeepFace
 DETECTOR   = "retinaface"    # detector de rostros más preciso
 DISTANCIA  = "cosine"        # métrica de distancia
-TOLERANCIA = 0.40            # umbral para cosine con ArcFace (recomendado)
+TOLERANCIA = 0.45            # umbral para cosine con ArcFace (recomendado)
 
 print(f"DeepFace configurado — modelo: {MODELO}, detector: {DETECTOR}")
 
