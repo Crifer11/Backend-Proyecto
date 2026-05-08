@@ -1,8 +1,8 @@
 import os
 import time
-import face_recognition 
+import numpy as np
+import face_recognition
 import cv2
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # =========================
 # Precargar encodings al inicio
@@ -20,7 +20,7 @@ for archivo in os.listdir(carpeta_rostros):
         ruta_imagen = os.path.join(carpeta_rostros, archivo)
         imagen = face_recognition.load_image_file(ruta_imagen)
 
-        # Reducir resolución
+        # Reducir resolución para acelerar
         imagen = cv2.resize(imagen, (0, 0), fx=0.5, fy=0.5)
 
         codificaciones = face_recognition.face_encodings(imagen, model='cnn')
@@ -38,74 +38,48 @@ print(f"Total rostros cargados en memoria: {len(NOMBRES_REGISTRADOS)}")
 TOLERANCIA = 0.45
 
 # =========================
-# Comparar bloque
-# =========================
-def comparar_bloque(codigos_bloque, nombres_bloque, codificacion_objetivo):
-    for idx, cod in enumerate(codigos_bloque):
-        if face_recognition.compare_faces(
-            [cod],
-            codificacion_objetivo,
-            tolerance=TOLERANCIA
-        )[0]:
-            return nombres_bloque[idx]
-    return None
-
-# =========================
-# Reconocimiento EN MEMORIA
+# Reconocimiento EN MEMORIA — mejor match
 # =========================
 def reconocer_rostro_desde_imagen(imagen_rgb):
     """
     imagen_rgb: numpy array en formato RGB
-    return: id_persona o 0 si no hay match
+    return: id_persona (int) o 0 si no hay match
     """
     inicio = time.time()
 
-    # Reducir resolución
+    if not CODIFICACIONES_REGISTRADAS:
+        print("⚠️ No hay rostros registrados en memoria")
+        return 0
+
+    # Reducir resolución para acelerar
     imagen_rgb = cv2.resize(imagen_rgb, (0, 0), fx=0.5, fy=0.5)
 
     codificaciones = face_recognition.face_encodings(imagen_rgb, model='cnn')
 
     if not codificaciones:
+        print("⚠️ No se detectó ningún rostro en la imagen")
         return 0
 
     codificacion_recibida = codificaciones[0]
 
-    # =========================
-    # Paralelismo
-    # =========================
-    num_hilos = min(os.cpu_count() or 4, len(CODIFICACIONES_REGISTRADAS))
+    # Calcular distancia contra todos los registrados
+    # y quedarse con el de menor distancia (mejor match)
+    distancias = face_recognition.face_distance(
+        CODIFICACIONES_REGISTRADAS,
+        codificacion_recibida
+    )
 
-    if num_hilos <= 1:
-        for idx, cod in enumerate(CODIFICACIONES_REGISTRADAS):
-            if face_recognition.compare_faces(
-                [cod],
-                codificacion_recibida,
-                tolerance=TOLERANCIA
-            )[0]:
-                return NOMBRES_REGISTRADOS[idx]
-        return 0
+    indice_mejor = int(np.argmin(distancias))
+    mejor_distancia = distancias[indice_mejor]
 
-    bloque_size = len(CODIFICACIONES_REGISTRADAS) // num_hilos
-    bloques = []
-    nombres_bloques = []
+    print(f"Mejor distancia facial: {mejor_distancia:.4f} (tolerancia: {TOLERANCIA})")
 
-    for i in range(num_hilos):
-        start = i * bloque_size
-        end = (i + 1) * bloque_size if i < num_hilos - 1 else len(CODIFICACIONES_REGISTRADAS)
-        bloques.append(CODIFICACIONES_REGISTRADAS[start:end])
-        nombres_bloques.append(NOMBRES_REGISTRADOS[start:end])
+    if mejor_distancia <= TOLERANCIA:
+        id_reconocido = NOMBRES_REGISTRADOS[indice_mejor]
+        print(f"✅ Persona reconocida: ID {id_reconocido} (distancia: {mejor_distancia:.4f})")
+        return id_reconocido
 
-    with ThreadPoolExecutor(max_workers=num_hilos) as executor:
-        futures = [
-            executor.submit(comparar_bloque, cods, nombres, codificacion_recibida)
-            for cods, nombres in zip(bloques, nombres_bloques)
-        ]
-
-        for future in as_completed(futures):
-            resultado = future.result()
-            if resultado is not None:
-                return resultado
-
+    print(f"❌ Persona no reconocida (distancia: {mejor_distancia:.4f})")
     return 0
 
 # =========================
@@ -127,7 +101,6 @@ def recargar_rostro(ruta_imagen: str, id_persona: int):
 
         nueva_cod = codificaciones[0]
 
-        # Si ya existe ese ID, reemplazar su encoding
         if id_persona in NOMBRES_REGISTRADOS:
             idx = NOMBRES_REGISTRADOS.index(id_persona)
             CODIFICACIONES_REGISTRADAS[idx] = nueva_cod
