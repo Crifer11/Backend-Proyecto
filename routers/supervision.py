@@ -28,7 +28,6 @@ async def analizar(
     auto = cur.fetchone()
     
     if not auto:
-        # Notificar al front que el tag no está registrado
         await empujar_evento(id_vigilante, {
             "resultado": "Tag no registrado",
             "tipo": "alerta",
@@ -70,24 +69,29 @@ async def analizar(
     cur.execute("SELECT id_residente FROM residente_auto WHERE id_tag = %s", (auto_id,))
     autorizados = [row[0] for row in cur.fetchall()]
     
+    # Calcular validaciones UNA SOLA VEZ con tolerancia
+    persona_no_autorizada = persona_detectada not in autorizados
+    placa_no_coincide     = not comparar_placa(placa_detectada, placa_reg)
+    
     print("PLACA DB:", placa_reg)
     print("PLACA IA:", placa_detectada)
-    print("IGUALES:", placa_detectada == placa_reg)
+    print("PERSONA NO AUTORIZADA:", persona_no_autorizada)
+    print("PLACA NO COINCIDE:", placa_no_coincide)
     
-    if persona_detectada not in autorizados or not comparar_placa(placa_detectada, placa_reg):
-        
-        if persona_detectada not in autorizados and placa_detectada != placa_reg:
+    if persona_no_autorizada or placa_no_coincide:
+    
+        if persona_no_autorizada and placa_no_coincide:
             resultado = "Persona no autorizada y placa incorrecta"
-    
-        elif persona_detectada not in autorizados:
+            motivo = "fallo en reconocimiento facial y de placas"
+        elif persona_no_autorizada:
             resultado = "Persona no autorizada"
-    
-        elif not comparar_placa(placa_detectada, placa_reg):
+            motivo = "fallo en reconocimiento facial"
+        else:
             resultado = "Placa incorrecta"
+            motivo = "fallo en reconocimiento de placas"
             
         # --------- GENERAR REPORTE --------- 
 
-        # 1) Obtener info del auto 
         cur.execute("""
             SELECT modelo, id_titular
             FROM autos
@@ -95,7 +99,6 @@ async def analizar(
         """, (auto_id,))
         modelo_auto, id_titular = cur.fetchone()
     
-        # 2) Obtener nombre del dueño
         cur.execute("""
             SELECT nombre, celular
             FROM residente
@@ -105,7 +108,6 @@ async def analizar(
         
         nombre_dueno, celular = consulta
         
-        # Obtener vigilante y caseta
         cur.execute("""
             SELECT nombre, id_caseta
             FROM vigilante
@@ -120,7 +122,6 @@ async def analizar(
         """, (id_caseta,))
         nombre_caseta = cur.fetchone()[0]
         
-        # 3) Conductor
         if persona_detectada == 0:
             conductor = "Desconocido"
         else:
@@ -132,15 +133,6 @@ async def analizar(
             res = cur.fetchone()
             conductor = res[0] if res else "Desconocido"
     
-        # 4) Motivo
-        if persona_detectada not in autorizados and placa_detectada != placa_reg:
-            motivo = "fallo en reconocimiento facial y de placas"
-        elif persona_detectada not in autorizados:
-            motivo = "fallo en reconocimiento facial"
-        else:
-            motivo = "fallo en reconocimiento de placas"
-    
-        # 5) Insertar reporte
         cur.execute("""
             INSERT INTO reporte
             (conductor, placa, caseta, vigilante, motivo, carro, dueño, texto_placa, id_residente)
@@ -185,7 +177,6 @@ async def analizar(
         except Exception as e:
             print("Error al realizar la llamada:", e)
 
-        # 6) Empujar alerta al front por SSE
         await empujar_evento(id_vigilante, {
             "resultado": resultado,
             "tipo": "alerta",
@@ -194,12 +185,9 @@ async def analizar(
             "id_reporte": str(id_reporte)
         })
 
-        # 7) Responder al Python caseta (para el Arduino)
         return {"resultado": resultado}
 
     # --- AUTORIZADO ---
-
-    # Empujar autorizado al front por SSE (con fotos para que el vigilante las vea)
     await empujar_evento(id_vigilante, {
         "resultado": "Autorizado",
         "tipo": "autorizado",
@@ -208,7 +196,6 @@ async def analizar(
         "id_reporte": None
     })
 
-    # Responder al Python caseta (para el Arduino)
     return {"resultado": "Autorizado"}
 
 
