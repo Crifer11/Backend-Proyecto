@@ -19,7 +19,7 @@ modelo = torch.hub.load(
     path=model_path,
     force_reload=False,
     trust_repo=True,
-    skip_validation=True
+    skip_validation=False
 )
 modelo.conf = 0.3
 modelo.iou  = 0.45
