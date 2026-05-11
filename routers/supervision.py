@@ -10,6 +10,7 @@ from routers.administrar import guardar_imagen_jpg
 from routers.twiliox import hacer_llamada
 from routers.sse import empujar_evento
 from database import conectar_db
+import time
 
 router = APIRouter(prefix="/supervision", tags=["Supervisión"])
 
@@ -40,26 +41,29 @@ async def analizar(
     auto_id, placa_reg = auto
     
     contenido = await img_rostro.read()
-
     np_img = np.frombuffer(contenido, np.uint8)
     imagen_bgr = cv2.imdecode(np_img, cv2.IMREAD_COLOR)
- 
+    
     if imagen_bgr is not None:
         imagen_rgb = cv2.cvtColor(imagen_bgr, cv2.COLOR_BGR2RGB)
+        t1 = time.time()
         persona_detectada = reconocer_rostro_desde_imagen(imagen_rgb)
-
+        t2 = time.time()
+        print(f"⏱️ Facial tardó: {t2-t1:.2f} segundos")
+    
     bytes_placa = await img_placa.read()
-
     img_placa_cv = cv2.imdecode(
         np.frombuffer(bytes_placa, np.uint8),
         cv2.IMREAD_COLOR
-    ) 
-
+    )
+    
     if img_placa_cv is None:
         return {"error": "Imagen de placa inválida"}
-
-    # 2) Reconocimiento de placa con IA
+    
+    t3 = time.time()
     placa_detectada = reconocer_placa(img_placa_cv)
+    t4 = time.time()
+    print(f"⏱️ Placa tardó: {t4-t3:.2f} segundos")
 
     # 3) Convertir imágenes a base64 para mandarlas al front por SSE
     img_rostro_b64 = base64.b64encode(contenido).decode("utf-8")
