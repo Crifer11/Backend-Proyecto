@@ -147,7 +147,7 @@ def guardar_residente(
 
         if id_residente:
             # Si estamos en edición y se manda una nueva foto
-            if foto:
+            if foto and foto.filename:
                 nombre_archivo = f"{id_residente}_perfil.jpg"
                 ruta_guardado = os.path.join(CARPETA_FOTOS, nombre_archivo)
                 guardar_imagen_jpg(foto, ruta_guardado)
