@@ -269,8 +269,9 @@ def guardar_auto(
     placa: str = Form(...),
     modelo: str = Form(...),
     id_titular: int = Form(...),
+    serie: str = Form(...),
     id_auto: int = Form(None),
-    token: str = Form(None)  # Solo requerido si se quiere editar
+    token: str = Form(None)  
 ):
     try:
         conn = conectar_db()
@@ -295,9 +296,9 @@ def guardar_auto(
             # Actualizar el auto
             cursor.execute("""
                 UPDATE autos
-                SET placa = %s, id_titular = %s
+                SET placa = %s, id_titular = %s, serie = %s
                 WHERE id = %s
-            """, (placa, id_titular, id_auto))
+            """, (placa, id_titular, serie, id_auto))
 
             # Si cambió el titular
             if id_anterior != id_titular:
@@ -323,10 +324,10 @@ def guardar_auto(
 
             # ✨ Alta del auto
             cursor.execute("""
-                INSERT INTO autos (placa, modelo, id_titular)
-                VALUES (%s, %s, %s)
+                INSERT INTO autos (placa, modelo, id_titular, serie)
+                VALUES (%s, %s, %s, %s)
                 RETURNING id
-            """, (placa, modelo, id_titular))
+            """, (placa, modelo, id_titular, serie))
             id_auto = cursor.fetchone()[0]
 
             # 🔗 Insertar vínculo titular-auto
