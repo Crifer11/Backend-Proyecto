@@ -272,7 +272,7 @@ def obtener_informacion(id: int = Query(...), rol: str = Query(...)):
 
         elif rol == "Auto":
             cursor.execute("""
-                SELECT id, placa, modelo, id_titular
+                SELECT id, placa, modelo, id_titular, serie
                 FROM autos
                 WHERE id = %s
             """, (id,))
@@ -286,7 +286,8 @@ def obtener_informacion(id: int = Query(...), rol: str = Query(...)):
                     "id": auto[0],
                     "placa": auto[1],
                     "modelo": auto[2],
-                    "titular": nombre_titular
+                    "titular": nombre_titular,
+                    "serie": auto[4]
                 }
         
         elif rol == "Caseta":
