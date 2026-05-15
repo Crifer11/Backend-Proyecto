@@ -286,6 +286,7 @@ def obtener_informacion(id: int = Query(...), rol: str = Query(...)):
                     "id": auto[0],
                     "placa": auto[1],
                     "modelo": auto[2],
+                    "id_titular": auto[3],
                     "titular": nombre_titular,
                     "serie": auto[4]
                 }
