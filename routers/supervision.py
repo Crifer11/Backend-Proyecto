@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form
 import os
 import base64
-import json
+import asyncio
 import numpy as np 
 import cv2
 from ia.reconocimiento_facial.servidor_flask.facial.facial import reconocer_rostro_desde_imagen
@@ -13,6 +13,35 @@ from database import conectar_db
 import time
 
 router = APIRouter(prefix="/supervision", tags=["Supervisión"])
+
+# =========================
+# Llamada con reintentos si no contesta
+# Se ejecuta en segundo plano sin bloquear el servidor
+# =========================
+async def llamar_con_reintentos(celular: str, mensaje: str, intentos: int = 2, delay: int = 30):
+    from twilio.rest import Client
+    client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
+
+    for i in range(intentos):
+        try:
+            sid = hacer_llamada(celular, mensaje)
+            print(f"📞 Llamada {i+1} realizada, SID: {sid}")
+
+            # Esperar sin bloquear el servidor
+            await asyncio.sleep(delay)
+
+            # Verificar estado de la llamada
+            estado = client.calls(sid).fetch().status
+            print(f"Estado llamada {i+1}: {estado}")
+
+            if estado == "completed":
+                print("✅ Llamada contestada, no se reintenta")
+                break
+            else:
+                print(f"📵 No contestó ({estado}), reintentando...")
+
+        except Exception as e:
+            print(f"❌ Error en llamada {i+1}: {e}")
 
 @router.post("/analizar")
 async def analizar(
@@ -176,10 +205,8 @@ async def analizar(
             f"Contacte inmediato con administración."
         )
 
-        try:
-            hacer_llamada(celular, mensaje)
-        except Exception as e:
-            print("Error al realizar la llamada:", e)
+        # Llamada con reintentos en segundo plano — no bloquea el servidor
+        asyncio.create_task(llamar_con_reintentos(celular, mensaje, intentos=2, delay=30))
 
         await empujar_evento(id_vigilante, {
             "resultado": resultado,
