@@ -3,7 +3,7 @@ from fastapi.responses import StreamingResponse
 from database import conectar_db
 from weasyprint import HTML
 from jinja2 import Template
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 from io import BytesIO
 from pathlib import Path
@@ -55,6 +55,7 @@ def obtener_reportes(id: int, rol: str):
 def descargar_pdf(id_reporte: str = Query(...)):
     try:
         # ✅ Convertir string ISO a datetime para compatibilidad
+        MEXICO = timezone(timedelta(hours=-6))
         fecha_dt = datetime.fromisoformat(id_reporte)
         id_limpio = id_reporte.replace(":", "")
         ruta_foto_rostro = os.path.join("static", "reportes", f"{id_limpio}_rostro.jpg")
@@ -73,8 +74,8 @@ def descargar_pdf(id_reporte: str = Query(...)):
         
         # 🧾 Estructurar los datos
         datos = {
-            "fecha": str(datos_raw[0].date()),
-            "hora": str(datos_raw[0].time())[:8],
+            "fecha": str(datos_raw[0].astimezone(MEXICO).date()),
+            "hora": str(datos_raw[0].astimezone(MEXICO).time())[:8],
             "caseta": datos_raw[3],
             "vigilante": datos_raw[4],
             "motivo": datos_raw[5],
