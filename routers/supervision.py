@@ -18,7 +18,7 @@ router = APIRouter(prefix="/supervision", tags=["Supervisión"])
 # Llamada con reintentos si no contesta
 # Se ejecuta en segundo plano sin bloquear el servidor
 # =========================
-async def llamar_con_reintentos(celular: str, mensaje: str, intentos: int = 2, delay: int = 30):
+async def llamar_con_reintentos(celular: str, mensaje: str, intentos: int = 3, delay: int = 30):
     from twilio.rest import Client
     client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
 
